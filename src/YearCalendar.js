@@ -12,8 +12,11 @@ import { grey } from '@mui/material/colors';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import List from '@mui/material/List';
 
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -25,9 +28,27 @@ import dateCalendarTheme from './DateCalendarTheme';
 dayjs.extend(dayOfYear)
 
 
-export function DaysInput({ label, defaultValue, updateValue, isEditable }) {
-  const [ value, setValue ] = useState(defaultValue)
+function condenseDates(dates) {
+  return dates.reduce((abbrv, currDateSlot) => {
+      if (currDateSlot.isContinuous) {
+        return abbrv
+      } else if (currDateSlot.isBegin) {
+        abbrv.push({
+          begin: currDateSlot.date,
+          end: null,
+        })
+      } else if (currDateSlot.isEnd) {
+        abbrv.at(-1).end = currDateSlot.date
+      } else {
+        abbrv.push(currDateSlot.date)
+      }
+      return abbrv
+    }, [])
+}
 
+export function DaysInput({ label, defaultValue, updateValue, isEditable, showHours }) {
+  const [ value, setValue ] = useState(defaultValue)
+  const s = value == 1 ? "" : "s"
   return (
     <Stack direction="row" spacing={2} alignItems="center">
       <Typography sx={{color: grey[600]}}>{label}:</Typography>
@@ -47,17 +68,20 @@ export function DaysInput({ label, defaultValue, updateValue, isEditable }) {
           }}
           onChange={(e) => {setValue(e.target.value)}}
         />
-        <Typography >days</Typography>
+        <Typography >day{s}</Typography>
+        {showHours && <Typography>&nbsp; ({value * 8} hour{s})</Typography>}
       </Stack>
     </Stack>
   )
 }
 
-export function DaysDisplay({ label, value }) {
+export function DaysDisplay({ label, value, showHours }) {
+  const s = value == 1 ? "" : "s"
   return (
     <Stack direction="row" spacing={2} alignItems="center">
       <Typography sx={{color: grey[600]}}>{label}:</Typography>
-      <Typography>{value} days</Typography>
+      <Typography>{value} day{s}</Typography>
+      {showHours && <Typography>({value * 8} hour{s})</Typography>}
     </Stack>
   )
 }
@@ -140,8 +164,8 @@ function NullElement() {
 function Day({ day, selectedDates, holidayDates, ...other }) {
   const selectedDateSlot = selectedDates[day.dayOfYear()]
   const holidayDateSlot = holidayDates[day.dayOfYear()]
-  if (selectedDateSlot != null) { console.log('(D): selectedDateSlot: ', JSON.stringify(selectedDateSlot)) }
-  if (holidayDateSlot != null) { console.log('(D): holidayDateSlot: ', day.isSame(holidayDateSlot && holidayDateSlot.date, 'day'), day.format('YYYY-MM-DD'), JSON.stringify(holidayDateSlot)) }
+  // if (selectedDateSlot != null) { console.log('(D): selectedDateSlot: ', JSON.stringify(selectedDateSlot)) }
+  // if (holidayDateSlot != null) { console.log('(D): holidayDateSlot: ', day.isSame(holidayDateSlot && holidayDateSlot.date, 'day'), day.format('YYYY-MM-DD'), JSON.stringify(holidayDateSlot)) }
   let dateSlot = null
   if (selectedDateSlot && selectedDateSlot.date != null) {
     dateSlot = selectedDateSlot
@@ -149,35 +173,35 @@ function Day({ day, selectedDates, holidayDates, ...other }) {
     dateSlot = holidayDateSlot
   }
   if ( dateSlot != null ) {
-    return (
-      <Stack
-        direction="column"
-        justifyContent="center"
-        alignItems="center"
-        sx={{fontSize: '0.5em'}}
-      >
-        {/* <Typography color="primary.main"><b>V</b></Typography> */}
-        <CustomPickersDay 
-          {...other}
-          day={day}
-          sx={dateSlot.isContinuous ? { px: 2.5, mx: 0 } : {}}
-          isHighlight={true}
-          isHoliday={holidayDateSlot != null}
-          {...dateSlot}
-        />
-      </Stack>
-    )
+    const highlightedDay = <CustomPickersDay 
+      {...other}
+      day={day}
+      sx={dateSlot.isContinuous ? { px: 2.5, mx: 0 } : {}}
+      isHighlight={true}
+      isHoliday={holidayDateSlot != null}
+      {...dateSlot}
+    />
+    const title = dateSlot.name || dateSlot.comment || null
+    if (title != null) {
+      return (
+        <Tooltip title={title}>
+          {highlightedDay}
+        </Tooltip>
+      )
+    } else {
+      return ( highlightedDay )
+    }
   } else {
     return (
-      <Stack
-        direction="column"
-        justifyContent="center"
-        alignItems="center"
-        sx={{fontSize: '0.5em'}}
-      >
-        {/* <Typography>&nbsp;</Typography> */}
-        <PickersDay day={day} {...other} />
-      </Stack>
+      <PickersDay day={day} {...other} />
+      // <Stack
+      //   direction="column"
+      //   justifyContent="center"
+      //   alignItems="center"
+      //   sx={{fontSize: '0.5em'}}
+      // >
+      // {/* <Typography>&nbsp;</Typography> */}
+      // </Stack>
     )
   }
 }
@@ -244,5 +268,51 @@ export function CalendarGrid({ days, dispatchDays }) {
         </Grid>
       </LocalizationProvider>
     // </ThemeProvider>
+  )
+}
+
+export function YearCalendar({ days, dispatchDays }) {
+  return (
+    <Stack direction="row">
+      <CalendarGrid days={days} dispatchDays={dispatchDays} />
+      <Box>
+        {days.nSelected > 0 && <Typography sx={{fontWeight: 'bold', minWidth: 150 }}>Scheduled:</Typography>}
+        {/* , minWidth: 100 */}
+        <List>
+          {/* {days.selectedDates.map((dateSlot, idx) => <Typography key={idx} sx={{textAlign: 'center'}}>{dayjs(dateSlot.date).format('MMM DD')}</Typography>)} */}
+          {condenseDates(days.selectedDates).map(((dateRecord, idx) => {
+              if (dateRecord.begin != null) {
+                return (<Typography key={idx} >{dayjs(dateRecord.begin).format('MMM DD')} &ndash; {dayjs(dateRecord.end).format('MMM DD')}</Typography>)
+              } else {
+                return (<Typography key={idx} >{dayjs(dateRecord).format('MMM DD')}</Typography>)
+              }
+            }))}
+        </List>
+        {days.nHolidays > 0 && <Typography sx={{fontWeight: 'bold', minWidth: 150 }}>Holidays:</Typography>}
+        {/* , minWidth: 100 */}
+        <List>
+          {/* {days.selectedDates.map((dateSlot, idx) => <Typography key={idx} sx={{textAlign: 'center'}}>{dayjs(dateSlot.date).format('MMM DD')}</Typography>)} */}
+          {condenseDates(days.holidayDates).map(((dateRecord, idx) => {
+              if (dateRecord.begin != null) {
+                return (<Typography key={idx} >{dayjs(dateRecord.begin).format('MMM DD')} &ndash; {dayjs(dateRecord.end).format('MMM DD')}</Typography>)
+              } else {
+                return (<Typography key={idx} >{dayjs(dateRecord).format('MMM DD')}</Typography>)
+              }
+            }))}
+        </List>
+        {days.nOther > 0 && <Typography sx={{fontWeight: 'bold', minWidth: 150 }}>Other:</Typography>}
+        {/* , minWidth: 100 */}
+        <List>
+          {/* {days.selectedDates.map((dateSlot, idx) => <Typography key={idx} sx={{textAlign: 'center'}}>{dayjs(dateSlot.date).format('MMM DD')}</Typography>)} */}
+          {condenseDates(days.otherDates).map(((dateRecord, idx) => {
+              if (dateRecord.begin != null) {
+                return (<Typography key={idx} >{dayjs(dateRecord.begin).format('MMM DD')} &ndash; {dayjs(dateRecord.end).format('MMM DD')}</Typography>)
+              } else {
+                return (<Typography key={idx} >{dayjs(dateRecord).format('MMM DD')}</Typography>)
+              }
+            }))}
+        </List>
+      </Box>
+    </Stack>
   )
 }
