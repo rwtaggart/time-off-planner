@@ -21,6 +21,13 @@ npm start
     - Update `public/index.html` with new favicon.svg link
         e.g., `<link rel="icon" href="%PUBLIC_URL%/add_circle_white_24dp.svg" />`
 
-1. Modify `src/App.js` and `src/App.css`
-1. Add `toolbar` and modify theme
+2. Modify `src/App.js` and `src/App.css`
+3. Add `toolbar` and modify theme
 
+
+## Create Production Build
+1. Add `homepage` to `package.json`
+2. Run build:
+    ```sh
+    > BUILD_PATH=./docs npm run build
+    ```
