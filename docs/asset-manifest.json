@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/time-off-planner/static/css/main.ca2d0af9.css",
+    "main.js": "/time-off-planner/static/js/main.1e695ffb.js",
+    "static/js/787.36ddeb27.chunk.js": "/time-off-planner/static/js/787.36ddeb27.chunk.js",
+    "index.html": "/time-off-planner/index.html",
+    "main.ca2d0af9.css.map": "/time-off-planner/static/css/main.ca2d0af9.css.map",
+    "main.1e695ffb.js.map": "/time-off-planner/static/js/main.1e695ffb.js.map",
+    "787.36ddeb27.chunk.js.map": "/time-off-planner/static/js/787.36ddeb27.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ca2d0af9.css",
+    "static/js/main.1e695ffb.js"
+  ]
+}

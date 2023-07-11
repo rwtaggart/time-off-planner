@@ -1,6 +1,6 @@
 {
   "name": "vacation-planner",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "homepage": "https://rwtaggart.github.io/time-off-planner/",
   "dependencies": {
