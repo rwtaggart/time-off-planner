@@ -13,6 +13,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { styled } from '@mui/material/styles';
 
 import { grey } from '@mui/material/colors';
+import { purple } from '@mui/material/colors';
 import Typography from '@mui/material/Typography';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -35,9 +36,11 @@ import IconButton from '@mui/material/IconButton';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ReplayIcon from '@mui/icons-material/Replay';
 
-import { YearCalendar, DaysInput, DaysDisplay } from './YearCalendar';
 import { US_HOLIDAYS } from './us-holidays';
 import { writeCondensedDayRecords, loadCondensedDayRecords } from './dataStore.js'
+import { YearCalendar, DaysInput, DaysDisplay } from './YearCalendar';
+import { HolidayDates } from './HolidayDates'
+import { SelectedDates } from './SelectedDates'
 
 dayjs.extend(dayOfYear)
 
@@ -88,6 +91,28 @@ function daysReducer(prevDays, action) {
     case "ReloadDayRecords": {
       console.log('(D): ReloadDayRecords: ', action.dayRecords)
       return action.dayRecords
+    }
+    case "ResetHolidays": {
+      let modDays = {
+        ...prevDays,
+        holidayDates: Array(365),
+      }
+      US_HOLIDAYS.forEach(dateSlot => {
+        modDays.holidayDates[dateSlot.date.dayOfYear()] = {...DATE_SLOT_SCHEMA, ...dateSlot}
+      })
+      modDays.nHolidays = modDays.holidayDates.reduce(l => l+=1, 0)
+      writeCondensedDayRecords(modDays)
+      return modDays
+    }
+    case "ClearScheduledDays": {
+      let modDays = {
+        ...prevDays,
+        selectedDates: Array(365),
+      }
+      modDays.nSelected = modDays.selectedDates.reduce(l => l+=1, 0)
+      modDays.nRemaining = modDays.nTotal - modDays.nSelected
+      writeCondensedDayRecords(modDays)
+      return modDays
     }
     case "ChangeSelectedDate": {
       // TODO: May need a "deep copy" for this Array object.
@@ -144,9 +169,46 @@ function daysReducer(prevDays, action) {
         selectedDates: modSelectedDates,
       }
       modDays.nSelected = modDays.selectedDates.reduce(len => len+1, 0)
+      modDays.nHolidays = modDays.holidayDates.reduce(len => len+1, 0)
       modDays.nRemaining = modDays.nTotal - modDays.nSelected
       writeCondensedDayRecords(modDays)
       return modDays
+    }
+    case "DeleteHoliday": {
+      let modHolidayDates = shallowCopyArray(prevDays.holidayDates)
+      let idx = action.day.dayOfYear()
+      console.log("(D): DeleteHoliday: ", idx, JSON.stringify(action))
+      if (prevDays.holidayDates[idx] == null) {
+        return prevDays
+      } else {
+        delete modHolidayDates[idx]
+      }
+      let modDays = {
+        ...prevDays,
+        holidayDates: modHolidayDates,
+      }
+      modDays.nHolidays = modDays.holidayDates.reduce(len => len+1, 0)
+      writeCondensedDayRecords(modDays)
+      return modDays
+    }
+    case "AddHoliday": {
+      let modHolidayDates = shallowCopyArray(prevDays.holidayDates)
+      let idx = action.holidayRecord.date.dayOfYear()
+      console.log("(D): AddHoliday: ", idx, JSON.stringify(action))
+      if (prevDays.holidayDates[idx] != null) {
+        return prevDays
+      } else {
+        modHolidayDates[idx] = action.holidayRecord
+      }
+      let modDays = {
+        ...prevDays,
+        holidayDates: modHolidayDates,
+      }
+      writeCondensedDayRecords(modDays)
+      return modDays
+    }
+    case "ResetDayRecords": {
+      return DAYS_SCHEMA
     }
     default: {
       throw Error('Action not supported: ' + action.type)
@@ -158,8 +220,9 @@ function daysReducer(prevDays, action) {
 function App() {
   /** TODO: Move all "show" boolean settings into a single object **/
   // TODO: Use a reducer for the "config" app state (isDev, isShowSettings, editMode, cfgCategories, etc.)
-  const [ isDev, setIsDev ] = useState(true)
+  const [ isDev, setIsDev ] = useState(false)
   const [ isShowHours, setIsShowHours ] = useState(false)
+  const [ viewMode, setViewMode ] = useState('Calendar')
   // const [ days, setDays ] = useState(DAYS_SCHEMA)
   // TODO: rename "days" to something like "timeOffRecords" or "dayRecords" ?
   const [ days, dispatchDays ] = useReducer(daysReducer, DAYS_SCHEMA)
@@ -265,17 +328,21 @@ function App() {
               }
             </div>
             <Stack direction="row" spacing={3} justifyContent="center">
-              <Chip variant="filled" label="Calendar" color="primary" sx={{ fontSize: '1em' }}/>
-              <Chip variant="outlined" label="Holidays" sx={{ fontSize: '1em', color: darkTheme.palette.common.white, backgroundColor: null, borderColor: darkTheme.palette.primary.light, borderWidth: 2}}/>
-              <Chip variant="outlined" label="BLARGDS" sx={{ fontSize: '1em', }}/>
-              {/* <Chip variant="outlined" label="Holidays" color={darkTheme.palette.primary.light} sx={{ fontSize: '1em', }}/> */}
-              <Chip variant="outlined" label="Settings" color='secondary' sx={{ fontSize: '1em' }}/>
+              <Chip variant="filled" label="Calendar" color="primary" sx={{ fontSize: '1em' }} onClick={() => setViewMode('Calendar')} />
+              <Chip variant="outlined" label="Holidays" sx={{ fontSize: '1em', color: darkTheme.palette.common.white, backgroundColor: null, borderColor: darkTheme.palette.primary.light, borderWidth: 2}} onClick={() => setViewMode('Holiday')}/>
+              {/* <Chip variant="outlined" label="Scheduled" sx={{ fontSize: '1em', color: darkTheme.palette.common.white, backgroundColor: null, borderColor: darkTheme.palette.primary.light, borderWidth: 2}} onClick={() => setViewMode('Selected')}/> */}
+              
+              {/* TODO: Change "outlined" based on selected view - use styled() component? */}
+              {/* {viewMode === "Calendar"  && <Chip variant="outlined" label="RESET DEFAULTS" sx={{ fontSize: '1em', color: purple[300], backgroundColor: null, borderColor: purple[300], borderWidth: 2}} onClick={() => dispatchDays({type: 'ResetDayRecords'})}/>} */}
+              {(viewMode === "Calendar" || viewMode === "Selected") &&  <Chip variant="outlined" label="CLEAR ALL SCHEDULED DAYS" sx={{ fontSize: '1em', color: purple[300], backgroundColor: null, borderColor: purple[300], borderWidth: 2}} onClick={() => dispatchDays({type: 'ClearScheduledDays'})}/>}
+              {viewMode === "Holiday"   &&  <Chip variant="outlined" label="RESET US HOLIDAYS" sx={{ fontSize: '1em', color: purple[300], backgroundColor: null, borderColor: purple[300], borderWidth: 2}} onClick={() => dispatchDays({type: 'ResetHolidays'})}/>}
             </Stack>
             <FormControlLabel control={<Switch onChange={() => setIsShowHours(!isShowHours)} />} label="Show Hours" />
             <Tooltip title="Reload Data">
-              <IconButton onClick={handleReloadData}>
+              <Button variant="outlined" onClick={handleReloadData}>
                 <ReplayIcon sx={{ color: darkTheme.palette.common.white }} />
-              </IconButton>
+                <Typography pl={1} color="white" >Reload Data</Typography>
+              </Button>
             </Tooltip>
           </Stack>
         </ThemeProvider>
@@ -310,7 +377,12 @@ function App() {
             showHours={isShowHours}
           />
         </Stack>
-        <YearCalendar days={days} dispatchDays={dispatchDays} />
+        {viewMode === "Calendar" && <YearCalendar days={days} dispatchDays={dispatchDays} />}
+        {viewMode === "Holiday" && <HolidayDates days={days} dispatchDays={dispatchDays} />}
+        
+        {/* FIXME: Get SelectedDates view working! */}
+        {/* {viewMode === "Selected" && <SelectedDates days={days} dispatchDays={dispatchDays} />} */}
+
         {/* <Box>
           <Box component="span" sx={{fontWeight: 'bold'}}>State (days): </Box>
           {JSON.stringify(days)}
