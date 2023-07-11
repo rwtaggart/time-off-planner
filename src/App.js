@@ -89,8 +89,9 @@ function daysReducer(prevDays, action) {
       return modDays
     }
     case "ReloadDayRecords": {
-      console.log('(D): ReloadDayRecords: ', action.dayRecords)
-      return action.dayRecords
+      if (action.dayRecords != null) {
+        return action.dayRecords
+      }
     }
     case "ResetHolidays": {
       let modDays = {

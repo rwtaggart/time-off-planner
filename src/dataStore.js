@@ -32,7 +32,9 @@ export function writeCondensedDayRecords(dayRecords) {
 /** Expecting schema defined in App.js */
 export function loadCondensedDayRecords() {
   let loadedDayRecords = JSON.parse(window.localStorage.getItem(APP_ID))
-  console.log("(D): loadedDayRecords: ", JSON.stringify(loadedDayRecords))
+  if (loadedDayRecords == null) { 
+    return null 
+  }
   let modDayRecords = {
     ...loadedDayRecords,
     selectedDates: fillArrayDaySlots(loadedDayRecords.selectedDates),
