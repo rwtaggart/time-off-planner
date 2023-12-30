@@ -27,6 +27,8 @@ import dateCalendarTheme from './DateCalendarTheme';
 
 dayjs.extend(dayOfYear)
 
+const YEAR=2024
+
 // TODO: Add to utils.js file ?
 export function condenseDates(dates) {
   return dates.reduce((abbrv, currDateSlot) => {
@@ -221,10 +223,10 @@ export function CalendarGrid({ days, dispatchDays }) {
               // monthsPerRow={3}
               key={"DateCalendar_" + monthId}
               sx={{fontSize: '0.5em'}}
-              value={null}
+              value={dayjs().year(YEAR)}
               views={['day']}
-              minDate={dayjs().month(monthId).date(1)}
-              maxDate={dayjs().month(monthId + 1).date(0)}
+              minDate={dayjs().year(YEAR).month(monthId).date(1)}
+              maxDate={dayjs().year(YEAR).month(monthId + 1).date(0)}
               // NOTE: day is undefined when onChange is clicked on a holiday for some reason...
               shouldDisableDate={day => !day || (day && (day.day() == 0 || day.day() == 6))}
               slots={{
