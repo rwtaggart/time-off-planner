@@ -24,3 +24,7 @@ src/backup
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# dev
+.vscode/
+notes.md
