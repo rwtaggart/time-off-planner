@@ -27,7 +27,7 @@ import dateCalendarTheme from './DateCalendarTheme';
 
 dayjs.extend(dayOfYear)
 
-const YEAR=2024
+const YEAR=2025
 
 // TODO: Add to utils.js file ?
 export function condenseDates(dates) {
@@ -223,7 +223,7 @@ export function CalendarGrid({ days, dispatchDays }) {
               // monthsPerRow={3}
               key={"DateCalendar_" + monthId}
               sx={{fontSize: '0.5em'}}
-              value={dayjs().year(YEAR)}
+              value={null}
               views={['day']}
               minDate={dayjs().year(YEAR).month(monthId).date(1)}
               maxDate={dayjs().year(YEAR).month(monthId + 1).date(0)}
