@@ -27,4 +27,4 @@ yarn-error.log*
 
 # dev
 .vscode/
-notes.md
+sandbox/
