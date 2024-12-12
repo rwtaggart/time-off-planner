@@ -2,7 +2,7 @@
   "name": "vacation-planner",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://rwtaggart.github.io/time-off-planner",
+  "homepage": "https://rwtaggart.dev/time-off-planner",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
