@@ -19,19 +19,23 @@ function fillArrayDaySlots(daySlots) {
 }
 
 /** Expecting schema defined in App.js */
-export function writeCondensedDayRecords(dayRecords) {
+export function writeCondensedDayRecords(year, dayRecords) {
+  const record_key = APP_ID + "_" + year;
+  console.log('(D): Storing: ' + record_key)
   let modDayRecords = {
     ...dayRecords,
     selectedDates: dayRecords.selectedDates.reduce((list, dateSlot) => list.concat(dateSlot), []),
     holidayDates: dayRecords.holidayDates.reduce((list, dateSlot) => list.concat(dateSlot), []),
     otherDates: dayRecords.otherDates.reduce((list, dateSlot) => list.concat(dateSlot), []),
   }
-  window.localStorage.setItem(APP_ID, JSON.stringify(modDayRecords))
+  window.localStorage.setItem(record_key, JSON.stringify(modDayRecords))
 }
 
 /** Expecting schema defined in App.js */
-export function loadCondensedDayRecords() {
-  let loadedDayRecords = JSON.parse(window.localStorage.getItem(APP_ID))
+export function loadCondensedDayRecords(year) {
+  const record_key = APP_ID + "_" + year;
+  console.log('(D): Loading: ' + record_key)
+  let loadedDayRecords = JSON.parse(window.localStorage.getItem(record_key))
   if (loadedDayRecords == null) { 
     return null 
   }

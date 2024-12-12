@@ -48,6 +48,35 @@ export function condenseDates(dates) {
     }, [])
 }
 
+export function YearInput({ label, defaultValue, updateValue, }) {
+  const [ value, setValue ] = useState(defaultValue)
+  // const s = value == 1 ? "" : "s"
+  return (
+    <Stack direction="row" spacing={2} alignItems="center">
+      <Typography sx={{color: grey[600]}}>{label}:</Typography>
+      <Stack direction="row">
+        <TextField
+          value={value}
+          id="display-year" 
+          variant="standard"
+          size="small"
+          defaultValue={defaultValue}
+          onBlur={() => { updateValue(value) }}
+          type="number"
+          inputProps={{
+            // step: 3,
+            max:9999,
+            min: 0,
+          }}
+          onChange={(e) => {setValue(e.target.value)}}
+        />
+        {/* <Typography >day{s}</Typography> */}
+        {/* {showHours && <Typography>&nbsp; ({value * 8} hour{s})</Typography>} */}
+      </Stack>
+    </Stack>
+  )
+}
+
 export function DaysInput({ label, defaultValue, updateValue, isEditable, showHours }) {
   const [ value, setValue ] = useState(defaultValue)
   const s = value == 1 ? "" : "s"
@@ -210,6 +239,7 @@ function Day({ day, selectedDates, holidayDates, ...other }) {
 
 
 export function CalendarGrid({ days, dispatchDays }) {
+  // console.log("(D): year: ", days.year);
   return (
     // <ThemeProvider theme={dateCalendarTheme}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -218,15 +248,15 @@ export function CalendarGrid({ days, dispatchDays }) {
             <Grid item key={"DC item" + monthId}>
               <DateCalendar
               // defaultCalendarMonth={dayjs().set('month', 0)}
-              // minDate={dayjs().set('month', 0).set('day', 20)}
+              // minDate={dayjs().set('month', 0).set('day', 20)
               // defaultCalendarMonth={dayjs().month(1)}
               // monthsPerRow={3}
-              key={"DateCalendar_" + monthId}
+              key={"DateCalendar_" + days.year + monthId}
               sx={{fontSize: '0.5em'}}
               value={null}
               views={['day']}
-              minDate={dayjs().year(YEAR).month(monthId).date(1)}
-              maxDate={dayjs().year(YEAR).month(monthId + 1).date(0)}
+              minDate={dayjs().year(days.year).month(monthId).date(1)}
+              maxDate={dayjs().year(days.year).month(monthId + 1).date(0)}
               // NOTE: day is undefined when onChange is clicked on a holiday for some reason...
               shouldDisableDate={day => !day || (day && (day.day() == 0 || day.day() == 6))}
               slots={{

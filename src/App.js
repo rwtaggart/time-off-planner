@@ -38,7 +38,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 
 import { US_HOLIDAYS } from './us-holidays';
 import { writeCondensedDayRecords, loadCondensedDayRecords } from './dataStore.js'
-import { YearCalendar, DaysInput, DaysDisplay } from './YearCalendar';
+import { YearCalendar, YearInput, DaysInput, DaysDisplay } from './YearCalendar';
 import { HolidayDates } from './HolidayDates'
 import { SelectedDates } from './SelectedDates'
 
@@ -62,6 +62,7 @@ const DATE_SLOT_SCHEMA = {
 }
 
 const DAYS_SCHEMA = {
+  year: dayjs().year(),
   nTotal: 25,
   nRemaining: 25,
   nSelected: 0,
@@ -72,37 +73,56 @@ const DAYS_SCHEMA = {
   holidayDates: Array(365),
 }
 
-US_HOLIDAYS.forEach(dateSlot => {
+US_HOLIDAYS(DAYS_SCHEMA.year).forEach(dateSlot => {
   DAYS_SCHEMA.holidayDates[dateSlot.date.dayOfYear()] = {...DATE_SLOT_SCHEMA, ...dateSlot}
 })
 DAYS_SCHEMA.nHolidays = DAYS_SCHEMA.holidayDates.reduce(l => l+=1, 0)
 
 function daysReducer(prevDays, action) {
   switch(action.type) {
+    case "ChangeYear": {
+      let modDays = {
+        ...prevDays,
+        year: action.year,
+      }
+      // FIXME: Updating year is clunky. Requires separate user call for handleReloadData()
+      // TODO: Trigger automate reload of data via handleReloadData()
+      return modDays
+    }
     case "ChangeTotal": {
       let modDays = {
         ...prevDays,
         nTotal: action.total
       }
       modDays.nRemaining = modDays.nTotal - modDays.nSelected
-      writeCondensedDayRecords(modDays)
+      console.log("(D): ChangeYear: ")
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "ReloadDayRecords": {
       if (action.dayRecords != null) {
         return action.dayRecords
       }
+      let modDays = {
+        ...DAYS_SCHEMA,
+        year: prevDays.year,
+      }
+      return modDays
+      // NOTE: fall-through to "ResetHolidays" if dayRecords is null
+      // FIXME: Is this the desired behavior? => NO
+      //        This causes
     }
     case "ResetHolidays": {
       let modDays = {
         ...prevDays,
         holidayDates: Array(365),
       }
-      US_HOLIDAYS.forEach(dateSlot => {
+      US_HOLIDAYS(prevDays.year).forEach(dateSlot => {
         modDays.holidayDates[dateSlot.date.dayOfYear()] = {...DATE_SLOT_SCHEMA, ...dateSlot}
       })
       modDays.nHolidays = modDays.holidayDates.reduce(l => l+=1, 0)
-      writeCondensedDayRecords(modDays)
+      console.log("(D): ResetHolidays: " + action.type)
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "ClearScheduledDays": {
@@ -112,7 +132,8 @@ function daysReducer(prevDays, action) {
       }
       modDays.nSelected = modDays.selectedDates.reduce(l => l+=1, 0)
       modDays.nRemaining = modDays.nTotal - modDays.nSelected
-      writeCondensedDayRecords(modDays)
+      console.log("(D): ClearScheduledDays: ")
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "ChangeSelectedDate": {
@@ -172,7 +193,8 @@ function daysReducer(prevDays, action) {
       modDays.nSelected = modDays.selectedDates.reduce(len => len+1, 0)
       modDays.nHolidays = modDays.holidayDates.reduce(len => len+1, 0)
       modDays.nRemaining = modDays.nTotal - modDays.nSelected
-      writeCondensedDayRecords(modDays)
+      console.log("(D): ChangeSelectedDate: ")
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "DeleteHoliday": {
@@ -189,7 +211,8 @@ function daysReducer(prevDays, action) {
         holidayDates: modHolidayDates,
       }
       modDays.nHolidays = modDays.holidayDates.reduce(len => len+1, 0)
-      writeCondensedDayRecords(modDays)
+      console.log("(D): DeleteHoliday: ")
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "AddHoliday": {
@@ -205,7 +228,7 @@ function daysReducer(prevDays, action) {
         ...prevDays,
         holidayDates: modHolidayDates,
       }
-      writeCondensedDayRecords(modDays)
+      writeCondensedDayRecords(prevDays.year, modDays)
       return modDays
     }
     case "ResetDayRecords": {
@@ -238,7 +261,8 @@ function App() {
 
 
   const handleReloadData = (e) => {
-    const data = loadCondensedDayRecords()
+    const data = loadCondensedDayRecords(days.year)
+    console.log('(D): handleReloadData: ', data)
     dispatchDays({
       type: "ReloadDayRecords",
       dayRecords: data,
@@ -351,7 +375,13 @@ function App() {
       <main className="app-content">
       {/* <ThemeProvider theme={lightTheme}> */}
         <Stack direction="row"  spacing={10} bgcolor={grey[100]} justifyContent="center" alignItems="center" pt={1} mb={2} pb={1} sx={{borderBottomStyle: 'solid', borderWidth: 2, borderColor: grey[600]}}>
-          <DaysInput 
+          <YearInput
+            label="Year"
+            updateValue={(v) => {dispatchDays({type: "ChangeYear", year: v})}}
+            defaultValue={days.year}
+            showHours={isShowHours}
+          />
+          <DaysInput
             label="Total"
             updateValue={(v) => {dispatchDays({type: "ChangeTotal", total: v})}}
             defaultValue={days.nTotal}
