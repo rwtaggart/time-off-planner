@@ -71,6 +71,7 @@ const DAYS_SCHEMA = {
   selectedDates: Array(365),
   otherDates: Array(365),
   holidayDates: Array(365),
+  isReloadRequired: false,
 }
 
 US_HOLIDAYS(DAYS_SCHEMA.year).forEach(dateSlot => {
@@ -84,6 +85,7 @@ function daysReducer(prevDays, action) {
       let modDays = {
         ...prevDays,
         year: action.year,
+        isReloadRequired: true,
       }
       // FIXME: Updating year is clunky. Requires separate user call for handleReloadData()
       // TODO: Trigger automate reload of data via handleReloadData()
@@ -106,11 +108,12 @@ function daysReducer(prevDays, action) {
       let modDays = {
         ...DAYS_SCHEMA,
         year: prevDays.year,
+        isReloadRequired: false,
       }
       return modDays
       // NOTE: fall-through to "ResetHolidays" if dayRecords is null
       // FIXME: Is this the desired behavior? => NO
-      //        This causes
+      //        This causes weird things when changing the year
     }
     case "ResetHolidays": {
       let modDays = {
@@ -258,6 +261,10 @@ function App() {
     // }
     // loadAndSetInitialStates()
   }, [])
+  useEffect(() => {
+    handleReloadData()
+    return
+  }, [days.isReloadRequired])
 
 
   const handleReloadData = (e) => {
